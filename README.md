@@ -10,13 +10,60 @@ restart**.
 - **Storage:** SQLite via the pure-Go [`modernc.org/sqlite`](https://modernc.org/sqlite) driver (no CGO)
 - **Short code:** 7-character random base62
 
-**🔗 Live demo:** http://14.225.211.201:8080 — try it:
+**🔗 Live demo:** http://14.225.211.201:8080
+
+Copy-paste against the live server (no setup needed):
 
 ```bash
+# Encode a URL -> {"code":"...","short_url":"http://14.225.211.201:8080/..."}
 curl -s -X POST http://14.225.211.201:8080/encode \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://codesubmit.io/library/react"}'
+
+# Decode by full short URL -> {"url":"https://codesubmit.io/library/react"}
+curl -s -X POST http://14.225.211.201:8080/decode \
+  -H 'Content-Type: application/json' \
+  -d '{"short_url":"http://14.225.211.201:8080/sjLzyiC"}'
+
+# Decode by bare code (also accepted)
+curl -s -X POST http://14.225.211.201:8080/decode \
+  -H 'Content-Type: application/json' \
+  -d '{"short_url":"sjLzyiC"}'
+
+# Follow the short link (302 redirect to the original URL)
+curl -sIL http://14.225.211.201:8080/sjLzyiC | grep -i '^location'
+
+# Health check -> {"status":"ok"}
+curl -s http://14.225.211.201:8080/healthz
 ```
+
+Encode then decode in one go (extracts the code with `jq`):
+
+```bash
+CODE=$(curl -s -X POST http://14.225.211.201:8080/encode \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com/hello"}' | jq -r .code)
+
+curl -s -X POST http://14.225.211.201:8080/decode \
+  -H 'Content-Type: application/json' \
+  -d "{\"short_url\":\"$CODE\"}"
+```
+
+Error cases (note the status codes):
+
+```bash
+# Dangerous scheme is rejected -> 400
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://14.225.211.201:8080/encode \
+  -H 'Content-Type: application/json' -d '{"url":"javascript:alert(1)"}'
+
+# Unknown code -> 404
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://14.225.211.201:8080/decode \
+  -H 'Content-Type: application/json' -d '{"short_url":"zzzzzzz"}'
+```
+
+> Replace `http://14.225.211.201:8080` with `localhost:8080` to run the same
+> commands against a local instance. The `sjLzyiC` code above is a real,
+> pre-seeded mapping on the live demo.
 
 ---
 
