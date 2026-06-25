@@ -10,6 +10,14 @@ restart**.
 - **Storage:** SQLite via the pure-Go [`modernc.org/sqlite`](https://modernc.org/sqlite) driver (no CGO)
 - **Short code:** 7-character random base62
 
+**🔗 Live demo:** http://14.225.211.201:8080 — try it:
+
+```bash
+curl -s -X POST http://14.225.211.201:8080/encode \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://codesubmit.io/library/react"}'
+```
+
 ---
 
 ## Quick start
@@ -39,8 +47,36 @@ curl -s -X POST localhost:8080/decode \
 
 ```bash
 docker build -t shortlink .
-docker run -p 8080:8080 -v shortlink-data:/data shortlink
+docker run -d --name shortlink --restart unless-stopped \
+  -p 8080:8080 -v shortlink-data:/data \
+  -e DB_PATH=/data/shortlink.db \
+  -e BASE_URL=http://localhost:8080 \
+  shortlink
 ```
+
+The image is a distroless static binary running as a non-root user. The
+`shortlink-data` volume holds the SQLite file, so mappings survive
+`docker restart` / redeploys. Set `BASE_URL` to the public address so the
+`short_url` field in responses points at the right host.
+
+### Deployment
+
+The live demo above runs this exact image on a VPS:
+
+```bash
+git clone https://github.com/PNKDuy/oivan-example-shortlink.git
+cd oivan-example-shortlink
+docker build -t shortlink .
+docker run -d --name shortlink --restart unless-stopped \
+  -p 8080:8080 -v shortlink-data:/data \
+  -e DB_PATH=/data/shortlink.db \
+  -e BASE_URL=http://<PUBLIC_IP>:8080 \
+  shortlink
+```
+
+Any host with Docker works (VPS, Fly.io, Render, etc.). Persistence is verified
+end-to-end against the live instance: encode a URL, `docker restart shortlink`,
+and the code still decodes (the volume outlives the container).
 
 ### Configuration
 
