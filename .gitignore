@@ -1,0 +1,18 @@
+# Binaries
+/bin/
+shortlink
+
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
+
+# Env
+.env
+
+# OS / editor
+.DS_Store
+
+# Stray local files
+image.png
+*.png
